@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <style>
+        body {
+            background-color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            position: relative; /* Added to position logout and edit/map buttons relative to body */
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h1 {
+            color: #333;
+        }
+        button, a {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px 0; /* Added margin for vertical spacing */
+        }
+        button:hover, a:hover {
+            background-color: #45a049;
+        }
+        #clickCountButton {
+            background-color: #008CBA;
+        }
+        #clickCountButton:hover {
+            background-color: #007BB5;
+        }
+        form {
+            display: inline;
+        }
+        /* Positioning styles */
+        .top-right {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .top-left {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        .auth-links {
+            display: flex;
+            flex-direction: column; /* Stack Login and Register vertically */
+            align-items: center;
+        }
+        /* Additional styling to ensure separation is removed between hello and from */
+        .hello-message {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-right">
+        {% if user.is_authenticated %}
+            <form action="{% url 'logout_view' %}" method="post">
+                {% csrf_token %}
+                <button type="submit">Logout</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <div class="top-left">
+        {% if user.is_authenticated %}
+            <a href="{% url 'edit_view' %}">Edit</a>
+            <a href="{% url 'map_view' %}">Map</a>
+            <a href="{% url 'chart_view' %}">Chart</a>
+            
+        {% endif %}
+    </div>
+
+    <div class="container">
+        <div class="content">
+            <h1>Welcome!</h1>
+            {% if user.is_authenticated %}
+                <p class="hello-message">Hello, {{ user.username }} from {{ wojewodztwo }}</p>
+                <p id="clickCountDisplay">{{ clickCount }}</p>
+
+                <button id="clickCountButton" type="button" onclick="increaseClickCount()">Click</button>
+            {% else %}
+                <div class="auth-links">
+                    <a href="{% url 'login_view' %}">Login</a>
+                    <a href="{% url 'register_view' %}">Register</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function increaseClickCount() {
+            fetch('/click_count/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify("0"),
+            })
+            .then(response => response.json())
+            .then(data => updateClickCount(data))
+            .catch((error) => console.error('Error:', error));
+        }
+
+        function updateClickCount(response) {
+            document.getElementById('clickCountDisplay').textContent = response.clickCount;
+        }
+    </script>
+</body>
+</html>

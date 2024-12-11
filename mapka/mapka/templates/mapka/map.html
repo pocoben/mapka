@@ -1,0 +1,110 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poland Map</title>
+  <style>
+    .map {
+      width: 100%;
+      height: auto;
+      max-width: 800px; /* Adjust as necessary */
+    }
+    .district {
+      cursor: pointer;
+      transition: fill 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <select id = "choice" name = "choice">
+    <option value="wojewodztwa">populacja wojewodztw</option>
+    <option value="male">mężczyzna</option>
+    <option value="female">kobieta</option>
+    <option value="age">wiek</option>
+    <option value="click">ilość kliknięć</option>
+  </select>
+
+  <!-- Embed the SVG file using the <object> tag -->
+  <div class="map-container">
+    <object id="poland-map" class="map" type="image/svg+xml" data="{% static 'mapka/poland.svg' %}"></object>
+  </div>
+
+
+  <script>
+    // Pass the district data from Django to JavaScript
+    const districtData = {{ wojewodztwa_counts|safe}};
+    const maleData = {{male_counts|safe}};
+    const femaleData = {{female_counts|safe}};
+    const clickData = {{click_counts|safe}}
+    const ageData = {{age_counts|safe}}
+    let selected_data = districtData;
+    
+    // Find the maximum population value to create a percentage scale
+    let maxPopulation = Math.max(...Object.values(selected_data));
+
+    function handleSelection(){
+      const element = document.getElementById("choice");
+      const value = element.value;
+      
+      if(value == "wojewodztwa"){
+        selected_data = districtData;
+      } else if(value == "male"){
+        selected_data = maleData;
+      } else if(value == "female"){
+        selected_data = femaleData;
+      } else if(value == "click"){
+        selected_data = clickData;
+      } else if(value == "age"){
+        selected_data = ageData;
+      }
+      
+      maxPopulation = Math.max(...Object.values(selected_data));
+
+      drawMap();
+
+    }
+
+    // Define a function to generate color based on the population percentage
+    function getColorByPercentage(population) {
+        const percentage = population / maxPopulation;
+        const red = Math.round(255 * percentage);   // More population means more red
+        const green = Math.round(255 * (1 - percentage)); // Less population means more yellow
+        const color = `rgb(${red}, 50, ${green})`; // Yellow to red gradient
+        return color;
+    }
+    function drawMap(){
+      const svgDoc = document.getElementById("poland-map").contentDocument;
+
+      // Iterate through the district data and set colors based on percentage
+      Object.keys(selected_data).forEach(districtId => {
+        const population = selected_data[districtId];
+        const color = getColorByPercentage(population);
+
+        const districtElement = svgDoc.getElementById(districtId);
+        if (districtElement) {
+            districtElement.style.fill = color;
+        }
+      });
+
+    }
+
+    // Wait until the SVG is fully loaded
+
+    window.onload = function(){
+      document.getElementById("poland-map").addEventListener("load", drawMap);
+      document.getElementById("choice").addEventListener("change", handleSelection);
+
+      handleSelection();
+    }
+
+    
+</script>
+
+<a href="{% url 'home_view' %}">Back home</a>
+
+</body>
+</html>

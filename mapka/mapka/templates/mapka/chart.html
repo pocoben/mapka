@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Data Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div>
+        <h3>Wybierz osie X i Y:</h3>
+        <label>
+            <input type="radio" name="x-axis" value="wiek" checked> Wiek
+        </label>
+        <label>
+            <input type="radio" name="x-axis" value="clickCount"> Liczba kliknięć
+        </label>
+        <label>
+            <input type="radio" name="x-axis" value="plec"> Płec (m/k)
+        </label>
+        <br>
+        <label>
+            <input type="radio" name="y-axis" value="wiek" checked> Wiek
+        </label>
+        <label>
+            <input type="radio" name="y-axis" value="clickCount"> Liczba kliknięć
+        </label>
+    </div>
+
+    <div id="result">
+        <p>Wykres zostanie zaktualizowany na podstawie wybranych danych.</p>
+    </div>
+    <canvas id="myChart" width="400" height="200"></canvas>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Example user data (replace with your own JSON if dynamic)
+            const users = [
+                { wiek: 25, clickCount: 50, plec: 'm' },
+                { wiek: 30, clickCount: 60, plec: 'k' },
+                { wiek: 22, clickCount: 45, plec: 'm' },
+                { wiek: 28, clickCount: 55, plec: 'k' },
+                { wiek: 35, clickCount: 70, plec: 'm' },
+                { wiek: 29, clickCount: 65, plec: 'k' }
+            ];
+
+            // Initialize chart variables
+            let chart;
+
+            // Update chart when radio buttons are changed
+            function updateChart() {
+                const xAxisValue = document.querySelector('input[name="x-axis"]:checked').value;
+                const yAxisValue = document.querySelector('input[name="y-axis"]:checked').value;
+
+                const isPlecInvolved = xAxisValue === 'plec' || yAxisValue === 'plec';
+
+                let chartType = 'scatter';
+                let labels = [];
+                let values = [];
+                let aggregatedData;
+
+                if (isPlecInvolved) {
+                    // If plec is selected, switch to bar chart and calculate averages
+                    chartType = 'bar';
+
+                    // Group users by 'plec' and calculate the average
+                    const groupedData = users.reduce((acc, user) => {
+                        const groupKey = user[xAxisValue] || user[yAxisValue];
+                        if (!acc[groupKey]) acc[groupKey] = { sum: 0, count: 0 };
+                        acc[groupKey].sum += user[yAxisValue === 'plec' ? xAxisValue : yAxisValue];
+                        acc[groupKey].count += 1;
+                        return acc;
+                    }, {});
+
+                    // Transform grouped data into labels and calculate averages
+                    labels = Object.keys(groupedData);
+                    values = labels.map(key => groupedData[key].sum / groupedData[key].count);
+                } else {
+                    // Scatter chart for numeric fields
+                    aggregatedData = users.map(user => ({
+                        x: user[xAxisValue],
+                        y: user[yAxisValue]
+                    }));
+                }
+
+                // Destroy existing chart if it exists
+                if (chart) {
+                    chart.destroy();
+                }
+
+                // Draw the chart
+                const ctx = document.getElementById('myChart').getContext('2d');
+                chart = new Chart(ctx, {
+                    type: chartType,
+                    data: isPlecInvolved
+                        ? {
+                              labels: labels,
+                              datasets: [{
+                                  label: `Average ${yAxisValue} by ${xAxisValue}`,
+                                  data: values,
+                                  backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                  borderColor: 'rgba(75, 192, 192, 1)',
+                                  borderWidth: 1
+                              }]
+                          }
+                        : {
+                              datasets: [{
+                                  label: `Scatter Plot (${xAxisValue} vs ${yAxisValue})`,
+                                  data: aggregatedData,
+                                  backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                  borderColor: 'rgba(75, 192, 192, 1)',
+                                  borderWidth: 1
+                              }]
+                          },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            tooltip: {
+                                callbacks: isPlecInvolved
+                                    ? {}
+                                    : {
+                                          label: function(context) {
+                                              return `(${context.raw.x}, ${context.raw.y})`;
+                                          }
+                                      }
+                            }
+                        },
+                        scales: isPlecInvolved
+                            ? {
+                                  x: {
+                                      title: {
+                                          display: true,
+                                          text: xAxisValue
+                                      }
+                                  },
+                                  y: {
+                                      title: {
+                                          display: true,
+                                          text: `Average ${yAxisValue}`
+                                      },
+                                      beginAtZero: true
+                                  }
+                              }
+                            : {
+                                  x: {
+                                      title: {
+                                          display: true,
+                                          text: xAxisValue
+                                      },
+                                      type: 'linear'
+                                  },
+                                  y: {
+                                      title: {
+                                          display: true,
+                                          text: yAxisValue
+                                      },
+                                      type: 'linear'
+                                  }
+                              }
+                    }
+                });
+            }
+
+            // Add event listeners to radio buttons
+            document.querySelectorAll('input[name="x-axis"], input[name="y-axis"]').forEach(radio => {
+                radio.addEventListener('change', updateChart);
+            });
+
+            // Draw initial chart
+            updateChart();
+        });
+    </script>
+    <a href="{% url 'home_view' %}">Back home</a>
+</body>
+</html>
