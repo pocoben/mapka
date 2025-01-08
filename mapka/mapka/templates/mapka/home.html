@@ -99,7 +99,7 @@
         <div class="content">
             <h1>Welcome!</h1>
             {% if user.is_authenticated %}
-                <p class="hello-message">Hello, {{ user.username }} from {{ wojewodztwo }}</p>
+                <p class="hello-message">Witaj, {{ user.username }} z {{ wojewodztwo }}</p>
                 <p id="clickCountDisplay">{{ clickCount }}</p>
 
                 <button id="clickCountButton" type="button" onclick="increaseClickCount()">Click</button>

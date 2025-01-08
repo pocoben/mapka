@@ -1,10 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Data Chart</title>
+    <title>Wykres Danych Użytkowników</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Zmniejszamy wykres do 90% szerokości */
+        #myChart {
+            width: 90% !important;
+            height: 90% !important;
+            margin: 0 auto;  /* Centrujemy wykres */
+        }
+   
+
+    </style>
 </head>
 <body>
     <div>
@@ -16,7 +26,7 @@
             <input type="radio" name="x-axis" value="clickCount"> Liczba kliknięć
         </label>
         <label>
-            <input type="radio" name="x-axis" value="plec"> Płec (m/k)
+            <input type="radio" name="x-axis" value="plec"> Płeć (m/k)
         </label>
         <br>
         <label>
@@ -34,7 +44,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Example user data (replace with your own JSON if dynamic)
+            // Przykładowe dane użytkowników
             const users = [
                 { wiek: 25, clickCount: 50, plec: 'm' },
                 { wiek: 30, clickCount: 60, plec: 'k' },
@@ -44,26 +54,25 @@
                 { wiek: 29, clickCount: 65, plec: 'k' }
             ];
 
-            // Initialize chart variables
             let chart;
 
-            // Update chart when radio buttons are changed
+            // Funkcja aktualizująca wykres po zmianie opcji
             function updateChart() {
                 const xAxisValue = document.querySelector('input[name="x-axis"]:checked').value;
                 const yAxisValue = document.querySelector('input[name="y-axis"]:checked').value;
 
                 const isPlecInvolved = xAxisValue === 'plec' || yAxisValue === 'plec';
 
-                let chartType = 'scatter';
+                let chartType = 'line';  // Używamy wykresu liniowego
                 let labels = [];
                 let values = [];
                 let aggregatedData;
 
+                // Jeśli "plec" jest wybrane, tworzymy wykres słupkowy
                 if (isPlecInvolved) {
-                    // If plec is selected, switch to bar chart and calculate averages
                     chartType = 'bar';
 
-                    // Group users by 'plec' and calculate the average
+                    // Grupowanie użytkowników po "plec" i obliczanie średnich
                     const groupedData = users.reduce((acc, user) => {
                         const groupKey = user[xAxisValue] || user[yAxisValue];
                         if (!acc[groupKey]) acc[groupKey] = { sum: 0, count: 0 };
@@ -72,46 +81,55 @@
                         return acc;
                     }, {});
 
-                    // Transform grouped data into labels and calculate averages
+                    // Przekształcanie danych grupowych na etykiety i obliczanie średnich
                     labels = Object.keys(groupedData);
                     values = labels.map(key => groupedData[key].sum / groupedData[key].count);
                 } else {
-                    // Scatter chart for numeric fields
+                    // Tworzymy dane do wykresu liniowego
                     aggregatedData = users.map(user => ({
                         x: user[xAxisValue],
                         y: user[yAxisValue]
                     }));
+
+                    // Sortowanie danych po wartości x, aby punkty były połączone w odpowiedniej kolejności
+                    aggregatedData.sort((a, b) => a.x - b.x);
                 }
 
-                // Destroy existing chart if it exists
+                // Usuwanie istniejącego wykresu, jeśli już istnieje
                 if (chart) {
                     chart.destroy();
                 }
 
-                // Draw the chart
+                // Tworzenie wykresu
                 const ctx = document.getElementById('myChart').getContext('2d');
                 chart = new Chart(ctx, {
                     type: chartType,
                     data: isPlecInvolved
                         ? {
-                              labels: labels,
-                              datasets: [{
-                                  label: `Average ${yAxisValue} by ${xAxisValue}`,
-                                  data: values,
-                                  backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                                  borderColor: 'rgba(75, 192, 192, 1)',
-                                  borderWidth: 1
-                              }]
-                          }
+                            labels: labels,
+                            datasets: [{
+                                label: xAxisValue === 'plec' && yAxisValue === 'clickCount'
+                                    ? 'Liczba kliknięć przez płeć'
+                                    : xAxisValue === 'plec' && yAxisValue === 'wiek'
+                                    ? 'Średnia wieku przez płeć'
+                                    : 'Nieznany przypadek',
+                                data: values,
+                                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1
+                            }]
+                        }
                         : {
-                              datasets: [{
-                                  label: `Scatter Plot (${xAxisValue} vs ${yAxisValue})`,
-                                  data: aggregatedData,
-                                  backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                                  borderColor: 'rgba(75, 192, 192, 1)',
-                                  borderWidth: 1
-                              }]
-                          },
+                            datasets: [{
+                                label: `Wykres Liniowy (${xAxisValue === 'wiek' ? 'Wiek' : xAxisValue === 'clickCount' ? 'Liczba kliknięć' : 'Płeć'} vs ${yAxisValue === 'wiek' ? 'Wiek' : yAxisValue === 'clickCount' ? 'Liczba kliknięć' : 'Płeć'})`,
+                                data: aggregatedData,
+                                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1,
+                                fill: false,  // Połączenie punktów bez wypełnienia obszaru
+                                tension: 0.1   // Krzywizna linii
+                            }]
+                        },
                     options: {
                         responsive: true,
                         plugins: {
@@ -130,13 +148,13 @@
                                   x: {
                                       title: {
                                           display: true,
-                                          text: xAxisValue
+                                          text: xAxisValue === 'wiek' ? 'Wiek' : xAxisValue === 'clickCount' ? 'Liczba kliknięć' : 'Płeć'
                                       }
                                   },
                                   y: {
                                       title: {
                                           display: true,
-                                          text: `Average ${yAxisValue}`
+                                          text: `Średnia ${yAxisValue === 'wiek' ? 'Wiek' : yAxisValue === 'clickCount' ? 'Liczba kliknięć' : 'Płeć'}`
                                       },
                                       beginAtZero: true
                                   }
@@ -145,31 +163,36 @@
                                   x: {
                                       title: {
                                           display: true,
-                                          text: xAxisValue
+                                          text: xAxisValue === 'wiek' ? 'Wiek' : xAxisValue === 'clickCount' ? 'Liczba kliknięć' : 'Płeć'
                                       },
                                       type: 'linear'
                                   },
                                   y: {
                                       title: {
                                           display: true,
-                                          text: yAxisValue
+                                          text: yAxisValue === 'wiek' ? 'Wiek' : yAxisValue === 'clickCount' ? 'Liczba kliknięć' : 'Płeć'
                                       },
                                       type: 'linear'
                                   }
-                              }
+                              },
+                        layout: {
+                            padding: {
+                                bottom: 20  // Dodanie marginesu dolnego
+                            }
+                        }
                     }
                 });
             }
 
-            // Add event listeners to radio buttons
+            // Dodanie nasłuchiwaczy zdarzeń dla przycisków wyboru
             document.querySelectorAll('input[name="x-axis"], input[name="y-axis"]').forEach(radio => {
                 radio.addEventListener('change', updateChart);
             });
 
-            // Draw initial chart
+            // Rysowanie początkowego wykresu
             updateChart();
         });
     </script>
-    <a href="{% url 'home_view' %}">Back home</a>
+    <a href="{% url 'home_view' %}">Wróć do strony głównej</a>
 </body>
 </html>

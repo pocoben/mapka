@@ -7,79 +7,227 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Poland Map</title>
   <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 20px;
+      max-width: 100%;
+      padding: 10px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .map-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;  /* Ensure the map is centered */
+      position: relative;
+      width: 100%;
+      height: 100%;  /* Allow the container to adjust to the height of the window */
+      max-width: 800px; /* Max width as before */
+    }
+
     .map {
       width: 100%;
-      height: auto;
-      max-width: 800px; /* Adjust as necessary */
+      height: auto; /* Keep aspect ratio intact */
+      max-height: 100%; /* Ensure the map height does not overflow the container */
+      object-fit: contain; /* Ensure the map fills the container without cropping */
     }
-    .district {
-      cursor: pointer;
-      transition: fill 0.3s ease;
+    .scale-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
+
+    .gradient-bar {
+      width: 20px;
+      height: 100%;
+      background: linear-gradient(to top, rgb(255, 50, 0), rgb(0, 50, 255));
+      border: 1px solid #000;
+      max-height: 300px;
+    }
+
+    .scale-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+    }
+
+    .scale-label {
+      font-size: 12px;
+      text-align: center;
+    }
+
+    select {
+      margin-bottom: 20px;
+      padding: 5px;
+      font-size: 16px;
+    }
+
+    .description {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 20px;
+      padding-top: 100px;
+    }
+
+    @media (max-width: 700px) {
+      .container {
+        flex-direction: column;  /* Stack elements vertically */
+      }
+
+      .map-container {
+        transform: scale(0.7);  /* Remove any scaling transformations */
+        width: 100%;  /* Ensure the map container takes full width */
+      }
+
+      .map {
+        width: 150%;  /* Adjust the map width to fill the container */
+        height: auto;  /* Maintain aspect ratio */
+      }
+
+      .scale-container {
+        margin-top: 20px; /* Ensure some space between the map and the scale */
+      }
+    }
+
+      /* Style for the "Back home" button */
+  .back-home-button {
+    position: fixed;
+    top: 20px;  /* Distance from the top */
+    left: 20px; /* Distance from the left */
+    padding: 10px 15px;
+    background-color: #3baa8e;
+    color: white;
+    font-size: 16px;
+    text-decoration: none;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+  }
+
+  .back-home-button:hover {
+    background-color: #0056b3;  /* Darker shade on hover */
+  }
+
+  .container {
+    margin-top: 60px; /* To avoid overlap with the button */
+  }
+
+  .scale-container {
+    margin-top: 20px; /* Adding margin to prevent overlap with map or button */
+  }
   </style>
 </head>
 <body>
+  <a href="{% url 'home_view' %}" class="back-home-button">Back home</a>
 
-  <select id = "choice" name = "choice">
-    <option value="wojewodztwa">populacja wojewodztw</option>
-    <option value="male">mężczyzna</option>
-    <option value="female">kobieta</option>
-    <option value="age">wiek</option>
-    <option value="click">ilość kliknięć</option>
-  </select>
-
-  <!-- Embed the SVG file using the <object> tag -->
-  <div class="map-container">
-    <object id="poland-map" class="map" type="image/svg+xml" data="{% static 'mapka/poland.svg' %}"></object>
+  <div class="description" id="map-description">
+    Wybierz kategorię, aby zobaczyć odpowiednie dane na mapie.
   </div>
 
+  <div class="container">
+    <div class="map-container">
+      <object id="poland-map" class="map" type="image/svg+xml" data="{% static 'mapka/poland.svg' %}"></object>
+    </div>
+    <div class="scale-container">
+      <select id="choice" name="choice">
+        <option value="wojewodztwa">populacja wojewodztw</option>
+        <option value="male">mężczyzna</option>
+        <option value="female">kobieta</option>
+        <option value="age">wiek</option>
+        <option value="click">ilość kliknięć</option>
+      </select>
+      
+      <div class="scale-labels">
+        <div id="min-label" class="scale-label"></div>
+        <div class="gradient-bar"></div>
+        <div id="max-label" class="scale-label"></div>
+      </div>
+    </div>
+  </div>
+  
 
   <script>
-    // Pass the district data from Django to JavaScript
-    const districtData = {{ wojewodztwa_counts|safe}};
-    const maleData = {{male_counts|safe}};
-    const femaleData = {{female_counts|safe}};
-    const clickData = {{click_counts|safe}}
-    const ageData = {{age_counts|safe}}
+    function updateGradientBarSize() {
+      const mapContainer = document.querySelector('.map-container');
+      const gradientBar = document.querySelector('.gradient-bar');
+      const mapHeight = mapContainer.offsetHeight;
+      gradientBar.style.height = `${Math.min(mapHeight, 300)}px`;
+    }
+
+    window.addEventListener('resize', updateGradientBarSize);
+    window.addEventListener('load', updateGradientBarSize);
+    
+    const districtData = {{ wojewodztwa_counts|safe }};
+    const maleData = {{ male_counts|safe }};
+    const femaleData = {{ female_counts|safe }};
+    const clickData = {{ click_counts|safe }};
+    const ageData = {{ age_counts|safe }};
     let selected_data = districtData;
     
-    // Find the maximum population value to create a percentage scale
     let maxPopulation = Math.max(...Object.values(selected_data));
+    let minPopulation = Math.min(...Object.values(selected_data));
 
-    function handleSelection(){
+    function handleSelection() {
       const element = document.getElementById("choice");
       const value = element.value;
       
-      if(value == "wojewodztwa"){
+      if (value == "wojewodztwa") {
         selected_data = districtData;
-      } else if(value == "male"){
+        updateDescription("Populacja województw w Polsce.");
+      } else if (value == "male") {
         selected_data = maleData;
-      } else if(value == "female"){
+        updateDescription("Populacja mężczyzn w każdym województwie");
+      } else if (value == "female") {
         selected_data = femaleData;
-      } else if(value == "click"){
+        updateDescription("Populacja kobiet w każdym województwie");
+      } else if (value == "click") {
         selected_data = clickData;
-      } else if(value == "age"){
+        updateDescription("Suma liczby kliknięć przez użytkowników na dane województwo.");
+      } else if (value == "age") {
         selected_data = ageData;
+        updateDescription("Średni wiek w każdym województwie.");
       }
       
       maxPopulation = Math.max(...Object.values(selected_data));
+      minPopulation = Math.min(...Object.values(selected_data));
 
       drawMap();
-
+      updateScaleLabels();
     }
 
-    // Define a function to generate color based on the population percentage
+    function updateDescription(text) {
+      document.getElementById("map-description").innerText = text;
+    }
+
     function getColorByPercentage(population) {
-        const percentage = population / maxPopulation;
-        const red = Math.round(255 * percentage);   // More population means more red
-        const green = Math.round(255 * (1 - percentage)); // Less population means more yellow
-        const color = `rgb(${red}, 50, ${green})`; // Yellow to red gradient
+        const percentage = (population - minPopulation) / (maxPopulation - minPopulation);
+        const red = Math.round(255 * percentage);
+        const blue = Math.round(255 * (1 - percentage));
+        const color = `rgb(${red}, 50, ${blue})`;
         return color;
     }
-    function drawMap(){
+
+    function drawMap() {
       const svgDoc = document.getElementById("poland-map").contentDocument;
 
-      // Iterate through the district data and set colors based on percentage
       Object.keys(selected_data).forEach(districtId => {
         const population = selected_data[districtId];
         const color = getColorByPercentage(population);
@@ -89,22 +237,20 @@
             districtElement.style.fill = color;
         }
       });
-
     }
 
-    // Wait until the SVG is fully loaded
+    function updateScaleLabels() {
+      document.getElementById("max-label").innerText = Math.round(maxPopulation);
+      document.getElementById("min-label").innerText = Math.round(minPopulation);
+    }
 
-    window.onload = function(){
+    window.onload = function() {
       document.getElementById("poland-map").addEventListener("load", drawMap);
       document.getElementById("choice").addEventListener("change", handleSelection);
 
       handleSelection();
-    }
-
-    
-</script>
-
-<a href="{% url 'home_view' %}">Back home</a>
+    };
+  </script>
 
 </body>
 </html>
